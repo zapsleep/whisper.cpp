@@ -11,9 +11,36 @@ let package = Package(
         .tvOS(.v14)
     ],
     products: [
-        .library(name: "whisper", targets: ["whisper"]),
+        .library(name: "whisper", targets: ["whisper", "whisper-coreml"]),
     ],
     targets: [
+        .target(
+            name: "whisper-coreml",
+            path: ".",
+            exclude: [
+               "build",
+               "bindings",
+               "cmake",
+               "examples",
+               "scripts",
+               "models",
+               "samples",
+               "tests",
+               "CMakeLists.txt",
+               "Makefile"
+            ],
+            sources: [
+                "src/coreml/whisper-decoder-impl.m",
+                "src/coreml/whisper-encoder-impl.m",
+                "src/coreml/whisper-encoder.mm",
+            ],
+            cSettings: [
+                .unsafeFlags(["-Wno-shorten-64-to-32", "-O3", "-DNDEBUG"]),
+            ],
+            linkerSettings: [
+                .linkedFramework("CoreML")
+            ]
+        ),
         .target(
             name: "whisper",
             path: ".",
@@ -54,6 +81,8 @@ let package = Package(
                 .headerSearchPath("ggml/include"),
                 .define("GGML_USE_ACCELERATE"),
                 .define("GGML_USE_METAL"),
+                .define("WHISPER_USE_COREML", .when(platforms: [.iOS])),
+                .define("WHISPER_COREML_ALLOW_FALLBACK", .when(platforms: [.iOS]))
                 // NOTE: NEW_LAPACK will required iOS version 16.4+
                 // We should consider add this in the future when we drop support for iOS 14
                 // (ref: ref: https://developer.apple.com/documentation/accelerate/1513264-cblas_sgemm?language=objc)
